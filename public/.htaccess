@@ -1,0 +1,15 @@
+Options -Indexes
+DirectoryIndex disabled
+
+# Loyiha ildizidagi "Require all denied" ni faqat shu papka uchun bekor qiladi
+Require all granted
+
+# Yashirin fayllar (.env, .git, .htaccess va h.k.) yopiq
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Log, zaxira, arxiv va SQL fayllar docroot'da bo'lmasligi kerak — bo'lsa ham berilmaydi
+<FilesMatch "\.(log|sql|zip|tar|gz|rar|bak|old|env|ini|sh|md)$">
+    Require all denied
+</FilesMatch>

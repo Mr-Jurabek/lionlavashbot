@@ -1,0 +1,119 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'currency' => "so'm",
+
+    // Ro'yxatdan o'tish
+    'choose_lang' => "🇺🇿 Tilni tanlang\n🇷🇺 Выберите язык",
+    'lang.uz' => "🇺🇿 O'zbekcha",
+    'lang.ru' => '🇷🇺 Русский',
+    'lang_saved' => "✅ Til o'zgartirildi",
+    'ask_phone' => "📱 Telefon raqamingizni yuboring — pastdagi tugmani bosing.",
+    'phone_own_only' => "Iltimos, pastdagi tugma orqali <b>o'zingizning</b> raqamingizni yuboring.",
+    'welcome' => "Xush kelibsiz, {name}! 🦁\n<b>Lion Lavash</b> — mazali burger va lavashlar.",
+    'main_menu' => "Kerakli bo'limni tanlang 👇",
+    'use_buttons' => "Iltimos, pastdagi tugmalardan foydalaning 👇",
+
+    // Tugmalar
+    'btn.send_phone' => '📱 Raqamni yuborish',
+    'btn.menu' => '🍔 Menyu',
+    'btn.cart' => '🛒 Savat',
+    'btn.orders' => '📦 Buyurtmalarim',
+    'btn.contact' => '☎️ Aloqa',
+    'btn.lang' => '🌐 Til',
+    'btn.cancel' => '❌ Bekor qilish',
+    'btn.skip' => "➡️ O'tkazib yuborish",
+    'btn.send_location' => '📍 Lokatsiyani yuborish',
+    'btn.cash' => '💵 Naqd',
+    'btn.card' => '💳 Karta orqali',
+    'btn.confirm' => '✅ Tasdiqlash',
+    'btn.back' => '⬅️ Orqaga',
+    'btn.add_to_cart' => "🛒 Savatga qo'shish",
+    'btn.checkout' => '✅ Buyurtma berish',
+    'btn.clear_cart' => '🧹 Tozalash',
+    'btn.send_receipt' => '📎 #{id} chekini yuborish',
+
+    // Menyu
+    'categories' => '🍔 Kategoriyani tanlang:',
+    'no_categories' => "Hozircha menyu bo'sh.",
+    'products' => "<b>{category}</b>\nMahsulotni tanlang:",
+    'no_products' => "Bu kategoriyada hozircha mahsulot yo'q.",
+    'product_card' => "<b>{name}</b>\n{description}\n💰 Narxi: {price}\n🔢 Miqdor: {qty} ta\n💵 Jami: {total}",
+    'added_to_cart' => "✅ Savatga qo'shildi ({qty} ta)",
+
+    // Savat
+    'cart_empty' => "🛒 Savatingiz bo'sh.",
+    'cart_title' => '🛒 <b>Savat</b>',
+    'cart_line' => "<b>{name}</b>\n    {qty} × {price} = {total}",
+    'cart_items_total' => 'Mahsulotlar: {amount}',
+    'cart_delivery' => 'Yetkazib berish: {amount}',
+    'cart_delivery_free' => 'Yetkazib berish: bepul ✅',
+    'cart_free_hint' => "💡 {amount} dan boshlab yetkazib berish bepul",
+    'cart_total' => '<b>Jami: {amount}</b>',
+    'cart_cleared' => 'Savat tozalandi',
+
+    // Rasmiylashtirish
+    'closed' => "⏰ Hozir buyurtma qabul qilinmaydi.\nIsh vaqtimiz: <b>{hours}</b>",
+    'ask_address' => "📍 Yetkazib berish manzilini yuboring: lokatsiya tugmasini bosing yoki manzilni yozib yuboring.",
+    'address_invalid' => "Manzil 3–255 belgidan iborat bo'lsin. Iltimos, qaytadan yozing.",
+    'ask_comment' => "💬 Izoh qoldiring (masalan, podyezd, qavat, domofon) yoki o'tkazib yuboring.",
+    'comment_invalid' => '500 belgidan oshmasin. Iltimos, qisqaroq yozing.',
+    'ask_payment' => "💳 To'lov usulini tanlang:",
+    'confirm_title' => '📋 <b>Buyurtmani tasdiqlang</b>',
+    'confirm_address' => '📍 Manzil: {address}',
+    'address_location' => 'lokatsiya',
+    'confirm_comment' => '💬 Izoh: {comment}',
+    'confirm_payment' => "💳 To'lov: {method}",
+    'confirm_phone' => '📱 Telefon: {phone}',
+    'confirm_hint' => "Hammasi to'g'rimi? «✅ Tasdiqlash» tugmasini bosing.",
+    'payment.cash' => 'Naqd (kuryerga)',
+    'payment.card' => "Karta orqali o'tkazma",
+    'checkout_cancelled' => 'Buyurtma rasmiylashtirish bekor qilindi.',
+    'order_created_cash' => "✅ Buyurtma <b>#{id}</b> qabul qilindi!\nJami: <b>{total}</b>\n\nOperator tez orada tasdiqlaydi. Holat o'zgarsa, sizga xabar beramiz.",
+    'order_created_card' => "✅ Buyurtma <b>#{id}</b> yaratildi!",
+
+    // To'lov
+    'receipt_request' => "💳 Buyurtma <b>#{id}</b> uchun <b>{total}</b> ni quyidagi kartaga o'tkazing:\n\n<code>{card}</code>\n👤 {owner}\n\nSo'ng to'lov chekining rasmini (skrinshot) shu yerga yuboring.",
+    'receipt_expected' => "📎 Iltimos, to'lov chekining rasmini yuboring.",
+    'receipt_received' => "✅ Chek qabul qilindi. To'lov tekshirilgach, sizga xabar beramiz.",
+
+    // Buyurtmalarim
+    'orders_empty' => "Sizda hali buyurtmalar yo'q.",
+    'orders_title' => '📦 <b>Oxirgi buyurtmalaringiz</b>',
+    'order_line' => "<b>#{id}</b> · {date} · {total}\n{status}",
+
+    // Aloqa
+    'contact_info' => "☎️ Telefon: {phone}\n⏰ Ish vaqti: {hours}\n🚚 Faqat yetkazib berish",
+
+    // Holatlar
+    'status.new' => '🆕 Yangi — tasdiqlanishi kutilmoqda',
+    'status.awaiting_payment' => "💳 To'lov kutilmoqda",
+    'status.payment_review' => "🔎 To'lov tekshirilmoqda",
+    'status.accepted' => '✅ Qabul qilindi',
+    'status.preparing' => '👨‍🍳 Tayyorlanmoqda',
+    'status.ready' => '📦 Tayyor, kuryerga topshirilmoqda',
+    'status.on_the_way' => "🚚 Yo'lda",
+    'status.delivered' => '🎉 Yetkazildi',
+    'status.cancelled' => '❌ Bekor qilindi',
+
+    // Xabarnomalar
+    'notify.status' => "📦 Buyurtma <b>#{id}</b>: {status}",
+    'notify.payment_rejected' => "❌ Buyurtma <b>#{id}</b> uchun to'lov tasdiqlanmadi.\nChekni qaytadan yuboring yoki biz bilan bog'laning: {phone}",
+
+    // Xatolar
+    'error.generic' => "⚠️ Xatolik yuz berdi. Iltimos, birozdan so'ng qayta urinib ko'ring.",
+    'error.cart_empty' => "🛒 Savatingiz bo'sh.",
+    'error.product_unavailable' => 'Bu mahsulot hozir mavjud emas.',
+    'error.order_not_found' => 'Buyurtma topilmadi.',
+    'error.receipt_not_expected' => 'Bu buyurtma uchun chek kutilmayapti.',
+    'error.address_required' => "Manzil ko'rsatilmagan.",
+    'error.phone_required' => "Telefon raqami ko'rsatilmagan.",
+    'error.invalid_payment_method' => "To'lov usuli noto'g'ri.",
+    'error.invalid_transition' => "Bu amalni bajarib bo'lmaydi.",
+
+    // Admin xabarlari (ADMIN_CHAT_ID)
+    'admin.new_order' => "🆕 <b>Yangi buyurtma #{id}</b>\n👤 {name} · {phone}\n💳 {payment}\n📍 {address}\n💬 {comment}\n\n{items}\n\nMahsulotlar: {items_total}\nYetkazish: {fee}\n<b>Jami: {total}</b>",
+    'admin.receipt' => "🧾 <b>Buyurtma #{id} cheki</b>\nSumma: <b>{total}</b>\n👤 {name} · {phone}\nTekshirib, holatni o'zgartiring.",
+];

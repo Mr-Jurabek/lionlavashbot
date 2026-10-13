@@ -1,0 +1,5 @@
+# Zaxira himoya: docroot'ni public/ ga o'zgartirib bo'lmaydigan hosting uchun.
+# Loyiha ildizi docroot bo'lsa, hamma narsa (app/, storage/, database/, bin/, .env) yopiq;
+# faqat public/ ochiq — u o'zining .htaccess faylida qayta ruxsat beradi.
+Options -Indexes
+Require all denied
