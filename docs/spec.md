@@ -65,7 +65,17 @@ Asosiy menyu tugmasi, «❌ Bekor qilish» yoki `/start` har qanday holatda bosi
 - **Admin sozlamalari** (`settings`): yetkazish narxi, bepul chegara, radius, oshxona lokatsiyasi, karta raqami/egasi, telefon, ish vaqti, admin username. Har bir qiymat kiritilganda tekshiriladi.
 - **Admin matnlari faqat o'zbek tilida** (mijoz matnlari uz va ru).
 
-## 5. Boshqa qarorlar
+## 5. Kuryer (3-qaror, bitta bot ichida)
+
+- **Kuryer alohida bot emas.** Faol kuryerga botda «🚚 Kuryer» tugmasi ko'rinadi. Jadval: `couriers` (telegram_id unique, is_active). Kuryer o'chirilmaydi, faqat nofaol qilinadi.
+- **Qo'shish:** admin kuryerning xabarini forward qiladi yoki ID kiritadi. Kuryer avval `/start` bosgan bo'lishi kerak.
+- **Biriktirish:** admin buyurtmaga kuryerni tanlaydi (`orders.courier_id`). Faqat yakunlanmagan buyurtmaga (accepted, preparing, ready, on_the_way).
+- **Kuryer amallari:** ready → on_the_way («Yo'lga chiqdim»), on_the_way → delivered («Yetkazdim»), keyin naqd bo'lsa «Naqd oldim» → payment_status = paid.
+- **Naqd to'lov:** yetkazilgach `unpaid` qoladi. Faqat kuryer «Naqd oldim» tasdiqlagandan keyin `paid` bo'ladi (`OrderService::markCashPaid`).
+- **Ruxsat:** kuryer faqat o'ziga tayinlangan buyurtmani ko'radi va o'zgartiradi. Boshqa kuryer amalini rad etish `CourierService::act()` ichida tekshiriladi.
+- **Kuryer matnlari faqat o'zbekcha.**
+
+## 6. Boshqa qarorlar
 
 - `order_items.name_snapshot` o'zbekcha nom bilan saqlanadi (admin xabarlari o'zbek tilida).
 - Callback ma'lumotlari: `lang:uz`, `cats`, `cat:ID`, `prod:ID[:QTY]`, `add:ID:QTY`, `cart`, `ci:ID:inc|dec|del`, `cclear`, `checkout`, `rcpt:ORDER_ID`, `noop`. Mahsulot kartochkasidagi miqdor bazaga yozilmaydi, u `callback_data` ichida saqlanadi.

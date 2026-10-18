@@ -5,6 +5,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS order_status_log;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS couriers;
 DROP TABLE IF EXISTS cart_items;
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS categories;
@@ -65,6 +66,16 @@ CREATE TABLE cart_items (
     CONSTRAINT fk_cart_product FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE couriers (
+    id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    telegram_id BIGINT NOT NULL,
+    name        VARCHAR(100) NOT NULL,
+    is_active   TINYINT(1) NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_couriers_telegram (telegram_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE orders (
     id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id         INT UNSIGNED NOT NULL,
@@ -72,6 +83,7 @@ CREATE TABLE orders (
                          'ready', 'on_the_way', 'delivered', 'cancelled') NOT NULL DEFAULT 'new',
     payment_method  ENUM('cash', 'card') NOT NULL,
     payment_status  ENUM('unpaid', 'pending_review', 'paid', 'rejected') NOT NULL DEFAULT 'unpaid',
+    courier_id      INT UNSIGNED NULL,
     items_total     INT UNSIGNED NOT NULL,
     delivery_fee    INT UNSIGNED NOT NULL,
     total           INT UNSIGNED NOT NULL,
@@ -86,6 +98,8 @@ CREATE TABLE orders (
     PRIMARY KEY (id),
     KEY idx_orders_user (user_id, created_at),
     KEY idx_orders_status (status, created_at),
+    KEY idx_orders_courier (courier_id),
+    CONSTRAINT fk_orders_courier FOREIGN KEY (courier_id) REFERENCES couriers (id) ON DELETE SET NULL,
     CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

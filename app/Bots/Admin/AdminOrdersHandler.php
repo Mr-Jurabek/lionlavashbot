@@ -8,6 +8,7 @@ use App\Bots\Customer\Context;
 use App\Bots\Customer\Keyboards;
 use App\Bots\Customer\Views;
 use App\Core\I18n;
+use App\Models\Courier;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\User;
@@ -68,6 +69,7 @@ final class AdminOrdersHandler
             'payment_status' => (string) $order['payment_status'],
             'address' => Views::e($order['address_text'] ?? '—'),
             'map' => self::mapLink($order),
+            'courier' => self::courierName($order),
             'comment' => Views::e($order['comment'] ?? '—'),
             'items' => implode("\n", $items),
             'items_total' => I18n::money('uz', (int) $order['items_total']),
@@ -83,6 +85,9 @@ final class AdminOrdersHandler
         }
         if (!empty($order['receipt_file_id'])) {
             $rows[] = [Keyboards::button(I18n::t('uz', 'admin.btn.receipt'), 'arc:' . $order['id'])];
+        }
+        if (in_array($order['status'], ['accepted', 'preparing', 'ready', 'on_the_way'], true)) {
+            $rows[] = [Keyboards::button(I18n::t('uz', 'admin.btn.courier_assign'), 'acpick:' . $order['id'])];
         }
         $rows[] = [Keyboards::button(I18n::t('uz', 'admin.btn.back'), 'adm:orders')];
         $ctx->screen($text, Keyboards::inline($rows));
@@ -121,6 +126,15 @@ final class AdminOrdersHandler
     public static function statusLabel(string $status): string
     {
         return I18n::t('uz', 'status.' . $status);
+    }
+
+    private static function courierName(array $order): string
+    {
+        if (empty($order['courier_id'])) {
+            return '—';
+        }
+        $courier = Courier::find((int) $order['courier_id']);
+        return $courier !== null ? Views::e($courier['name']) : '—';
     }
 
     private static function mapLink(array $order): string

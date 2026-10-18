@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Bots\Customer;
 
 use App\Bots\Admin\AdminCatalogHandler;
+use App\Bots\Admin\AdminCouriersHandler;
+use App\Bots\Courier\CourierHandler;
 use App\Bots\Admin\AdminHandler;
 use App\Bots\Admin\AdminOrdersHandler;
 use App\Core\I18n;
@@ -120,6 +122,7 @@ final class CustomerBot
         $r->text(...$menu('btn.contact', [StartHandler::class, 'contactInfo']));
         $r->text(...$menu('btn.lang', [StartHandler::class, 'languageMenu']));
         $r->text(...$menu('btn.admin', [AdminHandler::class, 'home']));
+        $r->text(...$menu('btn.courier', [CourierHandler::class, 'home']));
         $r->text(static fn(string $t): bool => I18n::matches('btn.cancel', $t), [CheckoutHandler::class, 'cancel']);
 
         $r->state('checkout_address', [CheckoutHandler::class, 'address']);
@@ -134,6 +137,7 @@ final class CustomerBot
         $r->state('admin_setting', [AdminCatalogHandler::class, 'settingInput']);
         $r->state('admin_change_id', [AdminCatalogHandler::class, 'changeIdInput']);
         $r->state('admin_price', [AdminCatalogHandler::class, 'priceInput']);
+        $r->state('admin_courier_add', [AdminCouriersHandler::class, 'addInput']);
         $r->fallback([StartHandler::class, 'fallback']);
 
         $r->callback('lang', [StartHandler::class, 'chooseLang']);
@@ -158,6 +162,17 @@ final class CustomerBot
         $r->callback('aprod', [AdminCatalogHandler::class, 'product']);
         $r->callback('aptog', [AdminCatalogHandler::class, 'toggle']);
         $r->callback('aprice', [AdminCatalogHandler::class, 'askPrice']);
+        $r->callback('acadd', [AdminCouriersHandler::class, 'askAdd']);
+        $r->callback('acok', [AdminCouriersHandler::class, 'confirm']);
+        $r->callback('actog', [AdminCouriersHandler::class, 'toggle']);
+        $r->callback('acpick', [AdminCouriersHandler::class, 'pick']);
+        $r->callback('asgn', [AdminCouriersHandler::class, 'assign']);
+        // Kuryer menyusi
+        $r->callback('cmenu', [CourierHandler::class, 'menu']);
+        $r->callback('cord', [CourierHandler::class, 'show']);
+        $r->callback('cgo', static fn(Context $ctx, string $id = '0') => CourierHandler::act($ctx, $id, 'pickup'));
+        $r->callback('cdone', static fn(Context $ctx, string $id = '0') => CourierHandler::act($ctx, $id, 'deliver'));
+        $r->callback('ccash', static fn(Context $ctx, string $id = '0') => CourierHandler::act($ctx, $id, 'cash'));
         $r->callbackFallback(static fn(Context $ctx) => $ctx->answer());
 
         return $this->router = $r;

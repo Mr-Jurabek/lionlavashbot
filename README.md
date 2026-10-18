@@ -25,7 +25,9 @@ Loyihani to'liqligicha yuklang, masalan `~/lionlavash/`. Saytning **docroot** pa
 
 1. ISPmanager → «Ma'lumotlar bazalari» bo'limida `utf8mb4` kodirovkali yangi baza va foydalanuvchi yarating.
 2. phpMyAdmin → baza → «Import»: avval `database/schema.sql`, keyin `database/seed.sql`.
-   Baza avvaldan bor bo'lsa (1-sikl o'rnatilgan), faqat `database/migrations/002_admin_delivery.sql` ni import qiling.
+   Baza avvaldan bor bo'lsa, quyidagi migratsiyalarni **tartib bilan, bir martadan** import qiling:
+   `database/migrations/002_admin_delivery.sql`, keyin `database/migrations/003_couriers.sql`.
+   (Yangi o'rnatishda `schema.sql` va `seed.sql` ularni o'zi o'z ichiga oladi.)
 3. Sozlamalarni o'zingizniki bilan almashtiring (phpMyAdmin → SQL):
 
 ```sql
@@ -131,7 +133,18 @@ storage/logs/    loglar (docroot'dan tashqarida)
 
 ## Keyingi sikllar uchun
 
-- **Admin paneli** hozir bitta bot ichida (`app/Bots/Admin/`), faqat admin ID si uchun ochiladi. Qolgan admin funksiyalari (kuryer, veb-panel) keyinroq qo'shiladi.
-- **Kuryer boti:** alohida webhook va `Webhook::markProcessed('courier', …)` bilan, xuddi `customer.php` kabi.
+- **Admin paneli** bitta bot ichida (`app/Bots/Admin/`), faqat admin ID si uchun ochiladi. Veb-panel keyinroq qo'shiladi.
+- **Kuryer menyusi** ham shu bot ichida (`app/Bots/Courier/`). Alohida kuryer boti kerak emas.
+
+## Kuryerlar
+
+1. Kuryer botga `/start` bosadi (ro'yxatdan o'tadi).
+2. Admin botda «🛠 Admin» → «🚚 Kuryerlar» → «➕ Kuryer qo'shish» tanlaydi va kuryerning xabarini **forward** qiladi
+   (yoki Telegram ID sini yozadi). Kuryerning maxfiylik sozlamasi forward'ni yopib qo'ysa, ID ni qo'lda yozish kerak.
+3. Admin ismni tekshirib «✅ Tasdiqlash» bosadi. Kuryer faol bo'ladi, unda «🚚 Kuryer» tugmasi paydo bo'ladi.
+4. Admin buyurtma kartochkasida «🚚 Kuryer tayinlash» bosib kuryerni tanlaydi. Kuryerga buyurtma xabari boradi.
+5. Kuryer «🚚 Kuryer» → buyurtmani ochadi: «🚚 Yo'lga chiqdim» → «✅ Yetkazdim» → «💵 Naqd oldim» (naqd to'lov uchun).
+
+Kuryer faqat o'ziga tayinlangan buyurtmani o'zgartira oladi. Kuryerni o'chirib bo'lmaydi, faqat nofaol qilinadi (✅/⛔ tugmasi).
 - **Online to'lov (Click/Payme):** `PaymentService` ga yangi usul qo'shiladi (`METHODS`, `statusAfterCreate`, `isTransitionAllowed`, `paymentStatusOnTransition`). `orders.payment_method` ENUM'i ham kengaytiriladi.
 - **Veb-panel va Mini App:** `Services` va `Models` qatlamlaridan foydalanadi.

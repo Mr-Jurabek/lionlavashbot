@@ -55,7 +55,7 @@ final class PaymentService
             $to === 'payment_review' => 'pending_review',
             $from === 'payment_review' && $to === 'accepted' => 'paid',
             $from === 'payment_review' && $to === 'awaiting_payment' => 'rejected',
-            $order['payment_method'] === self::CASH && $to === 'delivered' => 'paid',
+            // Naqd: yetkazilgach `unpaid` qoladi, kuryer «Naqd oldim» deb tasdiqlagandan keyin paid bo'ladi
             default => $current,
         };
     }

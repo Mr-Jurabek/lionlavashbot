@@ -54,6 +54,26 @@ final class Order
         );
     }
 
+    public static function setPaymentStatus(int $id, string $paymentStatus): void
+    {
+        Db::run('UPDATE orders SET payment_status = ? WHERE id = ?', [$paymentStatus, $id]);
+    }
+
+    public static function setCourier(int $id, ?int $courierId): void
+    {
+        Db::run('UPDATE orders SET courier_id = ? WHERE id = ?', [$courierId, $id]);
+    }
+
+    /** Kuryerga tayinlangan, yakunlanmagan buyurtmalar. @return list<array<string, mixed>> */
+    public static function activeForCourier(int $courierId): array
+    {
+        return Db::all(
+            "SELECT * FROM orders WHERE courier_id = ? AND status IN ('accepted', 'preparing', 'ready', 'on_the_way')
+             ORDER BY id",
+            [$courierId]
+        );
+    }
+
     public static function updateStatus(int $id, string $status, string $paymentStatus): void
     {
         Db::run('UPDATE orders SET status = ?, payment_status = ? WHERE id = ?', [$status, $paymentStatus, $id]);

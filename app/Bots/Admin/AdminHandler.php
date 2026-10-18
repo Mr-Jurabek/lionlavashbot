@@ -35,6 +35,7 @@ final class AdminHandler
         match ($section) {
             'orders' => AdminOrdersHandler::list($ctx),
             'products' => AdminCatalogHandler::productsList($ctx),
+            'couriers' => AdminCouriersHandler::list($ctx),
             'settings' => AdminCatalogHandler::settingsList($ctx),
             'msg' => self::askOrderForMessage($ctx),
             default => self::home($ctx),
@@ -104,6 +105,7 @@ final class AdminHandler
         return Keyboards::inline([
             [Keyboards::button(I18n::t('uz', 'admin.btn.orders'), 'adm:orders'), Keyboards::button(I18n::t('uz', 'admin.btn.msg'), 'adm:msg')],
             [Keyboards::button(I18n::t('uz', 'admin.btn.products'), 'adm:products'), Keyboards::button(I18n::t('uz', 'admin.btn.settings'), 'adm:settings')],
+            [Keyboards::button(I18n::t('uz', 'admin.btn.couriers'), 'adm:couriers')],
         ]);
     }
 }

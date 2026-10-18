@@ -375,7 +375,7 @@ foreach (['accepted', 'preparing', 'ready', 'on_the_way', 'delivered'] as $s) {
     OrderService::transition($cashId, $s, 'cli');
 }
 $cash = Order::find($cashId);
-check($cash['status'] === 'delivered' && $cash['payment_status'] === 'paid', 'naqd: new → … → delivered, paid');
+check($cash['status'] === 'delivered' && $cash['payment_status'] === 'unpaid', 'naqd: delivered, lekin kuryer tasdiqlaguncha unpaid');
 $rejected = static function (int $id, string $to): bool {
     try {
         OrderService::transition($id, $to, 'cli');
@@ -568,6 +568,90 @@ $tg->reset();
 text(I18n::t('ru', 'btn.contact'));
 check(str_contains($tg->lastText(), 'lion_admin'), 'aloqa: admin username ko\'rsatildi');
 Setting::set('admin_username', '');
+
+section('12. Kuryer (bitta bot ichida)');
+const COURIER = 91001;
+const OTHER_COURIER = 91011;
+Db::run("INSERT INTO users (telegram_id, first_name, phone, lang) VALUES (?, ?, ?, ?)", [COURIER, 'Kuryer', '+998900000002', 'uz']);
+Db::run("INSERT INTO users (telegram_id, first_name, phone, lang) VALUES (?, ?, ?, ?)", [OTHER_COURIER, 'Boshqa', '+998900000003', 'uz']);
+$uid = (int) user()['id'];
+
+$tg->reset();
+press('acadd', false, ADMIN);
+check(stateOf(ADMIN) === 'admin_courier_add', 'admin kuryer qo\'shish bosqichiga o\'tdi');
+send(['forward_sender_name' => 'Yashirin'], ADMIN);
+check(stateOf(ADMIN) === 'admin_courier_add', 'forward yopiq bo\'lsa, ID so\'raldi');
+send(['text' => '123'], ADMIN);
+check(stateOf(ADMIN) === 'admin_courier_add', '/start bosmagan ID qabul qilinmadi');
+send(['forward_from' => ['id' => COURIER, 'first_name' => 'Kuryer', 'is_bot' => false]], ADMIN);
+check(stateOf(ADMIN) === 'admin_courier_confirm', 'forward orqali kuryer aniqlandi');
+press('acok', false, ADMIN);
+check(\App\Services\CourierService::isActive(COURIER), 'kuryer tasdiqlandi va faol');
+
+$courierId = (int) Db::one('SELECT id FROM couriers WHERE telegram_id = ?', [COURIER])['id'];
+\App\Services\CourierService::add(OTHER_COURIER, 'Boshqa kuryer');
+check(!\App\Services\CourierService::isActive(USER_ID), 'oddiy mijoz kuryer emas');
+$tg->reset();
+send(['text' => I18n::t('uz', 'btn.courier')], COURIER);
+check(str_contains($tg->lastText(), 'tayinlangan buyurtma yo\'q'), 'kuryer menyusi ochildi (buyurtma yo\'q)');
+
+// Buyurtma: kuryersiz → tayinlash
+$courierOrder = Order::create([
+    'user_id' => $uid, 'status' => 'accepted', 'payment_method' => 'cash',
+    'items_total' => 30000, 'delivery_fee' => 10000, 'total' => 40000,
+    'address_text' => 'Podyezd 2', 'latitude' => 41.3, 'longitude' => 69.2,
+    'phone' => '+998900000001', 'comment' => null,
+]);
+$tg->reset();
+press('acpick:' . $courierOrder, false, ADMIN);
+check(str_contains(json_encode($tg->calls), 'asgn:' . $courierOrder . ':' . $courierId), 'kuryerlar ro\'yxati tayinlash tugmasi bilan');
+press('asgn:' . $courierOrder . ':' . $courierId, false, ADMIN);
+check((int) Order::find($courierOrder)['courier_id'] === $courierId, 'buyurtma kuryerga tayinlandi');
+check(count(sentTo($tg, COURIER)) === 1, 'kuryerga tayinlash haqida xabar yuborildi');
+
+$tg->reset();
+press('cord:' . $courierOrder, false, COURIER);
+check(str_contains($tg->lastText(), '#' . $courierOrder), 'kuryer o\'z buyurtmasini ochdi');
+check(str_contains(json_encode($tg->calls), 'cgo:' . $courierOrder) === false, 'accepted holatida «yo\'lga chiqdim» yo\'q');
+
+$tg->reset();
+press('cord:' . $courierOrder, false, OTHER_COURIER);
+check(alertShown($tg), 'boshqa kuryer tayinlanmagan buyurtmani ocha olmaydi');
+
+// Holatni admin «tayyor»gacha olib boradi
+OrderService::transition($courierOrder, 'preparing', 'cli');
+OrderService::transition($courierOrder, 'ready', 'cli');
+$tg->reset();
+press('cgo:' . $courierOrder, false, OTHER_COURIER);
+check(alertShown($tg) && Order::find($courierOrder)['status'] === 'ready', 'boshqa kuryer amalni bajara olmaydi');
+
+press('cgo:' . $courierOrder, false, COURIER);
+check(Order::find($courierOrder)['status'] === 'on_the_way', 'kuryer «yo\'lga chiqdim» bosdi');
+press('cdone:' . $courierOrder, false, COURIER);
+$delivered = Order::find($courierOrder);
+check($delivered['status'] === 'delivered' && $delivered['payment_status'] === 'unpaid', 'kuryer yetkazdi, naqd hali unpaid');
+$tg->reset();
+press('cord:' . $courierOrder, false, COURIER);
+check(str_contains(json_encode($tg->calls), 'ccash:' . $courierOrder), 'yetkazilgach «naqd oldim» tugmasi chiqadi');
+press('ccash:' . $courierOrder, false, COURIER);
+check(Order::find($courierOrder)['payment_status'] === 'paid', 'naqd oldim → paid');
+
+$tg->reset();
+press('acpick:' . $courierOrder, false, ADMIN);
+check(alertShown($tg), 'yetkazilgan buyurtmaga kuryer tayinlab bo\'lmaydi');
+
+// Kuryerni nofaol qilish va qayta faollashtirish
+press('actog:' . $courierId, false, ADMIN);
+check(!\App\Services\CourierService::isActive(COURIER), 'kuryer nofaol qilindi');
+$tg->reset();
+send(['text' => I18n::t('uz', 'btn.courier')], COURIER);
+check(str_contains($tg->lastText(), 'ruxsat etilmagan'), 'nofaol kuryer menyuga kira olmaydi');
+press('actog:' . $courierId, false, ADMIN);
+check(\App\Services\CourierService::isActive(COURIER), 'kuryer qayta faollashtirildi');
+
+$tg->reset();
+press('cmenu', false, USER_ID);
+check(alertShown($tg), 'oddiy mijoz kuryer menyusini ocha olmaydi');
 
 // ---------------------------------------------------------------- natija
 echo "\nNatija: {$passed} o'tdi, {$failed} xato\n";

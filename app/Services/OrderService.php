@@ -186,6 +186,22 @@ final class OrderService
         });
     }
 
+    /** Kuryer naqd pulni olganini tasdiqlaydi: faqat yetkazilgan, naqd, to'lanmagan buyurtma. */
+    public static function markCashPaid(int $orderId, string $changedBy): array
+    {
+        return Db::transaction(static function () use ($orderId, $changedBy): array {
+            $order = Order::findForUpdate($orderId);
+            if ($order === null) {
+                throw new ServiceException('order_not_found');
+            }
+            if ($order['status'] !== 'delivered' || $order['payment_method'] !== PaymentService::CASH || $order['payment_status'] !== 'unpaid') {
+                throw new ServiceException('invalid_transition');
+            }
+            Order::setPaymentStatus($orderId, 'paid');
+            return Order::find($orderId);
+        });
+    }
+
     /** @return array{order: array<string, mixed>, items: list<array<string, mixed>>}|null */
     public static function details(int $orderId): ?array
     {

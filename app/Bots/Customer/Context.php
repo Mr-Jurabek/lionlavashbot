@@ -9,6 +9,7 @@ use App\Core\State;
 use App\Core\Telegram;
 use App\Models\User;
 use App\Services\AdminAccess;
+use App\Services\CourierService;
 
 /**
  * Bitta update'ni qayta ishlash konteksti: foydalanuvchi, til, javob yuborish yordamchilari.
@@ -39,6 +40,11 @@ final class Context
     public function isAdmin(): bool
     {
         return AdminAccess::isAdmin($this->telegramId());
+    }
+
+    public function isCourier(): bool
+    {
+        return CourierService::isActive($this->telegramId());
     }
 
     public function lang(): string

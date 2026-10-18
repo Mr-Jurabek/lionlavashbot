@@ -33,6 +33,9 @@ final class Keyboards
             [['text' => $ctx->t('btn.orders')], ['text' => $ctx->t('btn.help')]],
             [['text' => $ctx->t('btn.contact')], ['text' => $ctx->t('btn.lang')]],
         ];
+        if ($ctx->isCourier()) {
+            $rows[] = [['text' => $ctx->t('btn.courier')]];
+        }
         if ($ctx->isAdmin()) {
             $rows[] = [['text' => $ctx->t('btn.admin')]];
         }
