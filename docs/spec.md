@@ -54,7 +54,18 @@ Ro'yxatdan o'tish alohida holat bilan emas, `users.lang` va `users.phone` maydon
 
 Asosiy menyu tugmasi, «❌ Bekor qilish» yoki `/start` har qanday holatda bosilsa, rasmiylashtirish bekor qilinadi.
 
-## 4. Boshqa qarorlar
+## 4. Admin va yetkazish (2-qaror, admin bot bitta bot ichida)
+
+- **Admin alohida bot emas.** Admin paneli mijoz botida, faqat admin Telegram ID si uchun ochiladi («🛠 Admin» tugmasi). Har bir admin amali `AdminAccess::require()` orqali tekshiriladi.
+- **Admin ID:** `.env` da `ADMIN_TG_ID`. Admin paneli → Sozlamalar → «Adminni almashtirish» orqali `settings.admin_tg_id` ga yoziladi (tasdiqlash bilan). Settings bo'sh bo'lsa, `.env` qiymati ishlatiladi.
+- **Lokatsiya majburiy.** Mijoz lokatsiya yuboradi, u havo chizig'i bo'yicha (haversine) oshxonadan `delivery_radius_km` (3–5 km) ichida bo'lishi kerak. Radius tashqarisida buyurtma rad etiladi.
+- **Matn manzil ixtiyoriy:** podyezd, qavat, xonadon. Izoh alohida bosqich.
+- **Yordam:** mijoz «🆘 Yordam» orqali yozadi, xabar admin shaxsiy akkauntiga keladi. Admin «✉️ Javob» tugmasi bilan javob beradi.
+- **Aloqa:** restoran telefoni, ish vaqti va `admin_username` (@ bilan havola).
+- **Admin sozlamalari** (`settings`): yetkazish narxi, bepul chegara, radius, oshxona lokatsiyasi, karta raqami/egasi, telefon, ish vaqti, admin username. Har bir qiymat kiritilganda tekshiriladi.
+- **Admin matnlari faqat o'zbek tilida** (mijoz matnlari uz va ru).
+
+## 5. Boshqa qarorlar
 
 - `order_items.name_snapshot` o'zbekcha nom bilan saqlanadi (admin xabarlari o'zbek tilida).
 - Callback ma'lumotlari: `lang:uz`, `cats`, `cat:ID`, `prod:ID[:QTY]`, `add:ID:QTY`, `cart`, `ci:ID:inc|dec|del`, `cclear`, `checkout`, `rcpt:ORDER_ID`, `noop`. Mahsulot kartochkasidagi miqdor bazaga yozilmaydi, u `callback_data` ichida saqlanadi.

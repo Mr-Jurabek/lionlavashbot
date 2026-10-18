@@ -91,10 +91,17 @@ final class StartHandler
 
     public static function contactInfo(Context $ctx): void
     {
-        $ctx->reply($ctx->t('contact_info', [
+        $text = $ctx->t('contact_info', [
             'phone' => Views::e(Setting::get('restaurant_phone')),
             'hours' => Views::e(WorkHours::text()),
-        ]), Keyboards::mainMenu($ctx));
+        ]);
+        $admin = ltrim(Setting::get('admin_username'), '@');
+        if ($admin !== '') {
+            $text .= "\n" . $ctx->t('contact_admin', [
+                'admin' => '<a href="https://t.me/' . Views::e($admin) . '">@' . Views::e($admin) . '</a>',
+            ]);
+        }
+        $ctx->reply($text, Keyboards::mainMenu($ctx));
     }
 
     /** Tushunarsiz xabar. */

@@ -8,7 +8,12 @@ INSERT INTO settings (name, value) VALUES
     ('card_number', '8600 0000 0000 0000'),
     ('card_owner', 'ISM FAMILIYA'),
     ('restaurant_phone', '+998 90 000 00 00'),
-    ('work_hours', '10:00-23:00');
+    ('work_hours', '10:00-23:00'),
+    ('restaurant_lat', ''),
+    ('restaurant_lng', ''),
+    ('delivery_radius_km', '5'),
+    ('admin_username', ''),
+    ('admin_tg_id', '');
 
 INSERT INTO categories (id, name_uz, name_ru, sort_order) VALUES
     (1, 'Burgerlar', 'Бургеры', 1),

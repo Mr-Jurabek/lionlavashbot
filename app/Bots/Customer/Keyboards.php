@@ -25,13 +25,18 @@ final class Keyboards
         return ['inline_keyboard' => $rows];
     }
 
+    /** Admin uchun qo'shimcha «🛠 Admin» tugmasi faqat admin ID si bilan ko'rinadi. */
     public static function mainMenu(Context $ctx): array
     {
-        return self::reply([
-            [['text' => $ctx->t('btn.menu')]],
-            [['text' => $ctx->t('btn.cart')], ['text' => $ctx->t('btn.orders')]],
+        $rows = [
+            [['text' => $ctx->t('btn.menu')], ['text' => $ctx->t('btn.cart')]],
+            [['text' => $ctx->t('btn.orders')], ['text' => $ctx->t('btn.help')]],
             [['text' => $ctx->t('btn.contact')], ['text' => $ctx->t('btn.lang')]],
-        ]);
+        ];
+        if ($ctx->isAdmin()) {
+            $rows[] = [['text' => $ctx->t('btn.admin')]];
+        }
+        return self::reply($rows);
     }
 
     public static function languages(Context $ctx): array
@@ -56,6 +61,11 @@ final class Keyboards
         ]);
     }
 
+    public static function detailsStep(Context $ctx): array
+    {
+        return self::reply([[['text' => $ctx->t('btn.skip')]], [['text' => $ctx->t('btn.cancel')]]]);
+    }
+
     public static function commentStep(Context $ctx): array
     {
         return self::reply([[['text' => $ctx->t('btn.skip')]], [['text' => $ctx->t('btn.cancel')]]]);
@@ -72,5 +82,11 @@ final class Keyboards
     public static function confirmStep(Context $ctx): array
     {
         return self::reply([[['text' => $ctx->t('btn.confirm')]], [['text' => $ctx->t('btn.cancel')]]]);
+    }
+
+    /** Faqat «Bekor qilish» tugmasi (matn so'raladigan bosqichlar uchun). */
+    public static function cancelOnly(Context $ctx): array
+    {
+        return self::reply([[['text' => $ctx->t('btn.cancel')]]]);
     }
 }

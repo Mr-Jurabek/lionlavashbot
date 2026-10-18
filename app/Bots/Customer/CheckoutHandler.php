@@ -6,13 +6,15 @@ namespace App\Bots\Customer;
 
 use App\Core\I18n;
 use App\Services\CartService;
+use App\Services\DeliveryZone;
 use App\Services\OrderService;
 use App\Services\PaymentService;
 use App\Services\ServiceException;
 use App\Services\WorkHours;
 
 /**
- * Manzil → izoh → to'lov usuli → tasdiqlash. Oraliq ma'lumotlar users.state_data da.
+ * Lokatsiya (majburiy, radius ichida) → podyezd/xonadon (ixtiyoriy) → izoh → to'lov usuli → tasdiqlash.
+ * Oraliq ma'lumotlar users.state_data da.
  */
 final class CheckoutHandler
 {
@@ -34,18 +36,40 @@ final class CheckoutHandler
     public static function address(Context $ctx): void
     {
         $location = $ctx->message()['location'] ?? null;
-        if ($location !== null) {
-            $data = ['latitude' => (float) $location['latitude'], 'longitude' => (float) $location['longitude'], 'address_text' => null];
-        } else {
-            $text = $ctx->text();
-            $length = mb_strlen($text);
-            if ($length < OrderService::ADDRESS_MIN || $length > OrderService::ADDRESS_MAX) {
-                $ctx->reply($ctx->t('address_invalid'), Keyboards::addressStep($ctx));
-                return;
-            }
-            $data = ['address_text' => $text, 'latitude' => null, 'longitude' => null];
+        if ($location === null) {
+            $ctx->reply($ctx->t('location_required'), Keyboards::addressStep($ctx));
+            return;
         }
-        $ctx->mergeState('checkout_comment', $data);
+        $lat = (float) $location['latitude'];
+        $lng = (float) $location['longitude'];
+        try {
+            DeliveryZone::check($lat, $lng);
+        } catch (ServiceException $e) {
+            $key = $e->reason === 'out_of_radius' ? 'error.out_of_radius' : 'error.restaurant_not_configured';
+            $ctx->reply($ctx->t($key, ['radius' => DeliveryZone::radiusKm()]), Keyboards::addressStep($ctx));
+            return;
+        }
+        $ctx->mergeState('checkout_details', ['latitude' => $lat, 'longitude' => $lng, 'address_text' => null]);
+        $ctx->reply($ctx->t('ask_details'), Keyboards::detailsStep($ctx));
+    }
+
+    /** Podyezd, qavat, xonadon. «O'tkazib yuborish» mumkin. */
+    public static function details(Context $ctx): void
+    {
+        $text = $ctx->text();
+        if ($text === '') {
+            $ctx->reply($ctx->t('ask_details'), Keyboards::detailsStep($ctx));
+            return;
+        }
+        if (I18n::matches('btn.skip', $text)) {
+            $details = null;
+        } elseif (mb_strlen($text) > OrderService::ADDRESS_MAX) {
+            $ctx->reply($ctx->t('address_invalid'), Keyboards::detailsStep($ctx));
+            return;
+        } else {
+            $details = $text;
+        }
+        $ctx->mergeState('checkout_comment', ['address_text' => $details]);
         $ctx->reply($ctx->t('ask_comment'), Keyboards::commentStep($ctx));
     }
 
@@ -92,7 +116,7 @@ final class CheckoutHandler
         }
         $checkout = $ctx->stateData();
         try {
-            $orderId = OrderService::createFromCart($ctx->userId(), $checkout, 'customer:' . $ctx->user['telegram_id']);
+            $orderId = OrderService::createFromCart($ctx->userId(), $checkout, 'customer:' . $ctx->telegramId());
         } catch (ServiceException $e) {
             if ($e->reason === 'cart_empty') {
                 // «Tasdiqlash» ikki marta bosilgan yoki savat bo'shatilgan — yangi buyurtma yaratilmaydi

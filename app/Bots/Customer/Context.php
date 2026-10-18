@@ -8,6 +8,7 @@ use App\Core\I18n;
 use App\Core\State;
 use App\Core\Telegram;
 use App\Models\User;
+use App\Services\AdminAccess;
 
 /**
  * Bitta update'ni qayta ishlash konteksti: foydalanuvchi, til, javob yuborish yordamchilari.
@@ -28,6 +29,16 @@ final class Context
     public function userId(): int
     {
         return (int) $this->user['id'];
+    }
+
+    public function telegramId(): int
+    {
+        return (int) $this->user['telegram_id'];
+    }
+
+    public function isAdmin(): bool
+    {
+        return AdminAccess::isAdmin($this->telegramId());
     }
 
     public function lang(): string

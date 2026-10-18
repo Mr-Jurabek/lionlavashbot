@@ -25,6 +25,7 @@ Loyihani to'liqligicha yuklang, masalan `~/lionlavash/`. Saytning **docroot** pa
 
 1. ISPmanager → «Ma'lumotlar bazalari» bo'limida `utf8mb4` kodirovkali yangi baza va foydalanuvchi yarating.
 2. phpMyAdmin → baza → «Import»: avval `database/schema.sql`, keyin `database/seed.sql`.
+   Baza avvaldan bor bo'lsa (1-sikl o'rnatilgan), faqat `database/migrations/002_admin_delivery.sql` ni import qiling.
 3. Sozlamalarni o'zingizniki bilan almashtiring (phpMyAdmin → SQL):
 
 ```sql
@@ -34,6 +35,10 @@ UPDATE settings SET value = '+998 90 123 45 67'   WHERE name = 'restaurant_phone
 UPDATE settings SET value = '10:00-23:00'         WHERE name = 'work_hours';     -- 10:00-02:00 ham bo'ladi
 UPDATE settings SET value = '10000'               WHERE name = 'delivery_fee';
 UPDATE settings SET value = '150000'              WHERE name = 'free_delivery_from'; -- 0 = bepul yetkazish yo'q
+UPDATE settings SET value = '41.311081'           WHERE name = 'restaurant_lat';  -- oshxona lokatsiyasi (Google Maps'dan)
+UPDATE settings SET value = '69.240562'           WHERE name = 'restaurant_lng';
+UPDATE settings SET value = '5'                   WHERE name = 'delivery_radius_km'; -- 3 dan 5 gacha
+UPDATE settings SET value = 'lion_admin'          WHERE name = 'admin_username';  -- @siz, «Aloqa» bo'limida ko'rinadi
 ```
 
 > **Diqqat:** `schema.sql` mavjud jadvallarni o'chirib, qaytadan yaratadi. Uni faqat yangi bazada ishga tushiring.
@@ -49,7 +54,11 @@ UPDATE settings SET value = '150000'              WHERE name = 'free_delivery_fr
 | `DB_*` | 2-qadamda yaratilgan baza ma'lumotlari |
 | `CUSTOMER_BOT_TOKEN` | @BotFather bergan token |
 | `CUSTOMER_WEBHOOK_SECRET` | Tasodifiy satr, 32+ belgi, faqat `A-Z a-z 0-9 _ -` |
+| `ADMIN_TG_ID` | Admin Telegram ID (faqat shu akkaunt admin paneliga kiradi) |
 | `ADMIN_CHAT_ID` | Yangi buyurtma va cheklar yuboriladigan chat ID |
+
+Admin uchun `.env` ga Telegram ID kiriting (`ADMIN_TG_ID`). Shu akkaunt botda «🛠 Admin» tugmasini ko'radi.
+Admin ID ni admin paneli → Sozlamalar → «Adminni almashtirish» orqali keyinroq o'zgartirish mumkin (u `settings` jadvaliga yoziladi, `.env` zaxira bo'lib qoladi).
 
 `ADMIN_CHAT_ID` ni bilish uchun: admin mijoz botida `/start` bosadi (bot boshlamagan odamga xabar yoza olmaydi),
 keyin @userinfobot orqali o'z ID sini oladi. Guruh ishlatilsa, mijoz botini guruhga qo'shing; guruh ID si `-100…` bilan boshlanadi.
@@ -82,7 +91,7 @@ https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<DOMEN>/customer.php&
 
 ## Buyurtma holatini sinov uchun o'zgartirish
 
-Admin bot keyingi siklda qo'shiladi. Hozircha holatni o'zgartirish uchun:
+Buyurtmalarni admin paneldan (botda «🛠 Admin» → «📋 Ochiq buyurtmalar») boshqarish mumkin. Lokal sinov uchun skript ham bor:
 
 ```bash
 php bin/set-order-status.php 12 accepted
@@ -122,6 +131,7 @@ storage/logs/    loglar (docroot'dan tashqarida)
 
 ## Keyingi sikllar uchun
 
-- **Admin bot:** `public/admin.php` faylini `customer.php` nusxasi sifatida yarating. U `ADMIN_BOT_TOKEN` va `ADMIN_WEBHOOK_SECRET` ishlatadi, `Webhook::markProcessed('admin', …)` chaqiradi va `app/Bots/Admin/` dagi bot bilan ishlaydi. Holatni o'zgartirish uchun `OrderService::transition($id, $to, 'admin:<tg_id>')` chaqiriladi. Mijozni xabardor qilish uchun `new CustomerNotifier(new Telegram(CUSTOMER_BOT_TOKEN))` ro'yxatdan o'tkaziladi.
+- **Admin paneli** hozir bitta bot ichida (`app/Bots/Admin/`), faqat admin ID si uchun ochiladi. Qolgan admin funksiyalari (kuryer, veb-panel) keyinroq qo'shiladi.
+- **Kuryer boti:** alohida webhook va `Webhook::markProcessed('courier', …)` bilan, xuddi `customer.php` kabi.
 - **Online to'lov (Click/Payme):** `PaymentService` ga yangi usul qo'shiladi (`METHODS`, `statusAfterCreate`, `isTransitionAllowed`, `paymentStatusOnTransition`). `orders.payment_method` ENUM'i ham kengaytiriladi.
 - **Veb-panel va Mini App:** `Services` va `Models` qatlamlaridan foydalanadi.

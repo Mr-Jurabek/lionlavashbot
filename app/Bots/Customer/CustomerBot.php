@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Bots\Customer;
 
+use App\Bots\Admin\AdminCatalogHandler;
+use App\Bots\Admin\AdminHandler;
+use App\Bots\Admin\AdminOrdersHandler;
 use App\Core\I18n;
 use App\Core\Logger;
 use App\Core\Router;
@@ -12,7 +15,8 @@ use App\Models\User;
 use App\Services\ServiceException;
 
 /**
- * Mijoz boti: update → foydalanuvchi → ro'yxatdan o'tish tekshiruvi → Router → handler.
+ * Mijoz boti (admin funksiyalari ham shu bot ichida, faqat admin ID si uchun).
+ * update → foydalanuvchi → ro'yxatdan o'tish tekshiruvi → Router → handler.
  */
 final class CustomerBot
 {
@@ -97,7 +101,7 @@ final class CustomerBot
         if ($this->router !== null) {
             return $this->router;
         }
-        // Asosiy menyu tugmalari har qanday holatda ishlaydi va rasmiylashtirishni bekor qiladi
+        // Asosiy menyu tugmalari har qanday holatda ishlaydi va joriy jarayonni bekor qiladi
         $menu = static fn(string $key, callable $handler) => [
             static fn(string $text): bool => I18n::matches($key, $text),
             static function (Context $ctx) use ($handler): void {
@@ -112,15 +116,24 @@ final class CustomerBot
         $r->text(...$menu('btn.menu', [MenuHandler::class, 'categories']));
         $r->text(...$menu('btn.cart', [CartHandler::class, 'show']));
         $r->text(...$menu('btn.orders', [OrdersHandler::class, 'list']));
+        $r->text(...$menu('btn.help', [SupportHandler::class, 'ask']));
         $r->text(...$menu('btn.contact', [StartHandler::class, 'contactInfo']));
         $r->text(...$menu('btn.lang', [StartHandler::class, 'languageMenu']));
+        $r->text(...$menu('btn.admin', [AdminHandler::class, 'home']));
         $r->text(static fn(string $t): bool => I18n::matches('btn.cancel', $t), [CheckoutHandler::class, 'cancel']);
 
         $r->state('checkout_address', [CheckoutHandler::class, 'address']);
+        $r->state('checkout_details', [CheckoutHandler::class, 'details']);
         $r->state('checkout_comment', [CheckoutHandler::class, 'comment']);
         $r->state('checkout_payment', [CheckoutHandler::class, 'payment']);
         $r->state('checkout_confirm', [CheckoutHandler::class, 'confirm']);
         $r->state('await_receipt', [PaymentHandler::class, 'receipt']);
+        $r->state('help_message', [SupportHandler::class, 'message']);
+        $r->state('admin_msg_order', [AdminHandler::class, 'orderForMessage']);
+        $r->state('admin_reply', [AdminHandler::class, 'replyText']);
+        $r->state('admin_setting', [AdminCatalogHandler::class, 'settingInput']);
+        $r->state('admin_change_id', [AdminCatalogHandler::class, 'changeIdInput']);
+        $r->state('admin_price', [AdminCatalogHandler::class, 'priceInput']);
         $r->fallback([StartHandler::class, 'fallback']);
 
         $r->callback('lang', [StartHandler::class, 'chooseLang']);
@@ -133,6 +146,18 @@ final class CustomerBot
         $r->callback('cclear', [CartHandler::class, 'clear']);
         $r->callback('checkout', [CheckoutHandler::class, 'start']);
         $r->callback('rcpt', [PaymentHandler::class, 'startReceipt']);
+        // Admin (har bir handler ichida AdminAccess::require() tekshiradi)
+        $r->callback('adm', [AdminHandler::class, 'section']);
+        $r->callback('rp', [AdminHandler::class, 'replyStart']);
+        $r->callback('aord', [AdminOrdersHandler::class, 'show']);
+        $r->callback('ast', [AdminOrdersHandler::class, 'setStatus']);
+        $r->callback('arc', [AdminOrdersHandler::class, 'receipt']);
+        $r->callback('aset', [AdminCatalogHandler::class, 'editSetting']);
+        $r->callback('aadm', [AdminCatalogHandler::class, 'askAdminChange']);
+        $r->callback('aadmok', [AdminCatalogHandler::class, 'confirmAdminChange']);
+        $r->callback('aprod', [AdminCatalogHandler::class, 'product']);
+        $r->callback('aptog', [AdminCatalogHandler::class, 'toggle']);
+        $r->callback('aprice', [AdminCatalogHandler::class, 'askPrice']);
         $r->callbackFallback(static fn(Context $ctx) => $ctx->answer());
 
         return $this->router = $r;

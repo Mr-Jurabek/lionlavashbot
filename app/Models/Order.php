@@ -45,6 +45,15 @@ final class Order
         );
     }
 
+    /** Yakunlanmagan buyurtmalar (admin paneli uchun). @return list<array<string, mixed>> */
+    public static function openOrders(int $limit = 15): array
+    {
+        return Db::all(
+            "SELECT * FROM orders WHERE status NOT IN ('delivered', 'cancelled')
+             ORDER BY id DESC LIMIT " . max(1, min($limit, 50))
+        );
+    }
+
     public static function updateStatus(int $id, string $status, string $paymentStatus): void
     {
         Db::run('UPDATE orders SET status = ?, payment_status = ? WHERE id = ?', [$status, $paymentStatus, $id]);

@@ -10,6 +10,7 @@ use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\User;
+use App\Services\DeliveryZone;
 
 /**
  * Buyurtma yaratish va holat o'tishlari — yagona markaz.
@@ -75,12 +76,14 @@ final class OrderService
         if (!PaymentService::isValid($method)) {
             throw new ServiceException('invalid_payment_method');
         }
-        $address = self::cleanText($checkout['address_text'] ?? null, self::ADDRESS_MAX);
+        // Lokatsiya majburiy: radius shu orqali tekshiriladi. Matn manzil (podyezd, xonadon) ixtiyoriy.
         $lat = isset($checkout['latitude']) ? (float) $checkout['latitude'] : null;
         $lng = isset($checkout['longitude']) ? (float) $checkout['longitude'] : null;
-        if ($address === null && ($lat === null || $lng === null)) {
-            throw new ServiceException('address_required');
+        if ($lat === null || $lng === null) {
+            throw new ServiceException('location_required');
         }
+        DeliveryZone::check($lat, $lng);
+        $address = self::cleanText($checkout['address_text'] ?? null, self::ADDRESS_MAX);
         $comment = self::cleanText($checkout['comment'] ?? null, self::COMMENT_MAX);
         if (!WorkHours::isOpen()) {
             throw new ServiceException('closed');

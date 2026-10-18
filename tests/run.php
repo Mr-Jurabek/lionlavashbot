@@ -17,7 +17,11 @@ use App\Core\Telegram;
 use App\Core\Webhook;
 use App\Models\Order;
 use App\Models\Setting;
+use App\Core\I18n;
+use App\Models\Product;
+use App\Services\AdminAccess;
 use App\Services\DeliveryFee;
+use App\Services\DeliveryZone;
 use App\Services\OrderService;
 use App\Services\ServiceException;
 use App\Services\WorkHours;
@@ -35,6 +39,7 @@ Env::set('DB_NAME', getenv('TEST_DB_NAME') ?: 'lionlavash_test');
 Env::set('DB_USER', getenv('TEST_DB_USER') ?: 'root');
 Env::set('DB_PASS', getenv('TEST_DB_PASS') ?: '');
 Env::set('ADMIN_CHAT_ID', '-100500');
+Env::set('ADMIN_TG_ID', '9001');
 
 if (!str_contains((string) Env::get('DB_NAME'), 'test')) {
     fwrite(STDERR, "Xavfsizlik: TEST_DB_NAME nomida 'test' bo'lishi shart\n");
@@ -168,10 +173,10 @@ function text(string $text): array
     return send(['text' => $text]);
 }
 
-function press(string $data, bool $photoMessage = false): void
+function press(string $data, bool $photoMessage = false, int $from = USER_ID): void
 {
     global $updateId;
-    $msg = ['message_id' => 555, 'chat' => ['id' => USER_ID, 'type' => 'private'], 'date' => time()];
+    $msg = ['message_id' => 555, 'chat' => ['id' => $from, 'type' => 'private'], 'date' => time()];
     if ($photoMessage) {
         $msg['photo'] = [['file_id' => 'x']];
     } else {
@@ -181,7 +186,7 @@ function press(string $data, bool $photoMessage = false): void
         'update_id' => ++$updateId,
         'callback_query' => [
             'id' => 'cb' . $updateId,
-            'from' => ['id' => USER_ID, 'is_bot' => false, 'first_name' => 'Test'],
+            'from' => ['id' => $from, 'is_bot' => false, 'first_name' => 'Test'],
             'message' => $msg,
             'data' => $data,
         ],
@@ -212,6 +217,11 @@ function t(string $key, array $params = []): string
 
 resetDatabase();
 Setting::set('work_hours', '00:00-00:00'); // 24 soat — oqim sinovlari vaqtga bog'liq bo'lmasin
+
+// Oshxona lokatsiyasi va radius (admin paneli sozlamalari o'rniga)
+Setting::set('restaurant_lat', '41.311081');
+Setting::set('restaurant_lng', '69.240562');
+Setting::set('delivery_radius_km', '5');
 
 section('1. Yetkazib berish narxi');
 check(DeliveryFee::forItemsTotal(149999) === 10000, '149 999 < 150 000 → 10 000');
@@ -287,11 +297,15 @@ check(count($tg->find('editMessageCaption')) === 1, 'rasmli kartochkada miqdor �
 section('5. Naqd buyurtma');
 $tg->reset();
 press('checkout');
-check(user()['state'] === 'checkout_address', 'manzil so\'raldi');
+check(user()['state'] === 'checkout_address', 'lokatsiya so\'raldi');
 text('Al');
-check(user()['state'] === 'checkout_address', 'qisqa manzil rad etildi');
+check(user()['state'] === 'checkout_address', 'matn manzil qabul qilinmadi (lokatsiya majburiy)');
+send(['location' => ['latitude' => 41.0, 'longitude' => 69.0]]);
+check(user()['state'] === 'checkout_address', 'radiusdan tashqari lokatsiya rad etildi');
+send(['location' => ['latitude' => 41.311081, 'longitude' => 69.240562]]);
+check(user()['state'] === 'checkout_details', 'lokatsiya qabul qilindi');
 text('Chilonzor 9, 12-uy <script>');
-check(user()['state'] === 'checkout_comment', 'manzil qabul qilindi');
+check(user()['state'] === 'checkout_comment', 'podyezd/xonadon matni qabul qilindi');
 text(t('btn.skip'));
 check(user()['state'] === 'checkout_payment', 'izoh o\'tkazib yuborildi');
 text('nimadir');
@@ -320,13 +334,14 @@ press('add:3:4'); // 4 × 45 000 = 180 000 ≥ 150 000 → bepul
 press('checkout');
 send(['location' => ['latitude' => 41.311081, 'longitude' => 69.240562]]);
 text('3-podyezd, 5-qavat');
+text(t('btn.skip'));
 text(t('btn.card'));
 $tg->reset();
 text(t('btn.confirm'));
 $card = lastOrder();
 check($card['status'] === 'awaiting_payment' && $card['payment_method'] === 'card', 'karta: avtomatik awaiting_payment');
 check((int) $card['delivery_fee'] === 0 && (int) $card['total'] === 180000, '180 000 → yetkazish bepul');
-check($card['latitude'] !== null && $card['address_text'] === null, 'lokatsiya saqlandi');
+check($card['latitude'] !== null && $card['address_text'] === '3-podyezd, 5-qavat', 'lokatsiya va podyezd saqlandi');
 check(str_contains($tg->allTexts(), '8600 0000 0000 0000'), 'karta raqami ko\'rsatildi');
 check(user()['state'] === 'await_receipt', 'chek kutilmoqda');
 $tg->reset();
@@ -409,6 +424,150 @@ press('lang:ru');
 $tg->reset();
 text('🛒 Корзина');
 check(str_contains($tg->lastText(), 'Корзина'), 'til ru ga o\'zgardi, ruscha tugma ishlaydi');
+
+section('9. Radius (havo chizig\'i)');
+check(DeliveryZone::distanceKm(41.311081, 69.240562, 41.311081, 69.240562) < 1e-9, 'bir nuqta → 0 km');
+$oneDegree = DeliveryZone::distanceKm(41.0, 69.0, 42.0, 69.0);
+check(abs($oneDegree - 111.2) < 0.5, 'kenglik bo\'yicha 1° ≈ 111 km', "topildi: {$oneDegree}");
+check(DeliveryZone::radiusKm() === 5.0, 'radius standart 5 km');
+Setting::set('delivery_radius_km', '1');
+check(DeliveryZone::radiusKm() === 3.0, 'radius 3 km dan kichik bo\'lmaydi');
+Setting::set('delivery_radius_km', '5');
+
+section('10. Admin paneli');
+const ADMIN = 9001;
+Db::run("INSERT INTO users (telegram_id, first_name, phone, lang) VALUES (?, ?, ?, ?)", [ADMIN, 'Admin', '+998900000001', 'uz']);
+$adminUserId = (int) Db::one('SELECT id FROM users WHERE telegram_id = ?', [ADMIN])['id'];
+function stateOf(int $telegramId): ?string
+{
+    return Db::one('SELECT state FROM users WHERE telegram_id = ?', [$telegramId])['state'] ?? null;
+}
+function alertShown(FakeTelegram $tg): bool
+{
+    return ($tg->find('answerCallbackQuery')[0]['show_alert'] ?? false) === true;
+}
+function sentTo(FakeTelegram $tg, int $chatId): array
+{
+    return array_values(array_filter($tg->find('sendMessage'), static fn($p) => $p['chat_id'] === $chatId));
+}
+
+$tg->reset();
+press('adm:orders', false, USER_ID);
+check(alertShown($tg), 'oddiy foydalanuvchi admin bo\'limini ocha olmaydi');
+$tg->reset();
+send(['text' => I18n::t('uz', 'btn.admin')], USER_ID);
+check(str_contains($tg->lastText(), 'недоступно'), 'oddiy foydalanuvchi «Admin» tugmasiga javob olmaydi');
+
+$tg->reset();
+send(['text' => I18n::t('uz', 'btn.admin')], ADMIN);
+check(str_contains($tg->lastText(), 'Admin paneli'), 'admin «Admin» tugmasi bilan paneli ochildi');
+check(str_contains(json_encode($tg->calls), 'adm:orders') && str_contains(json_encode($tg->calls), 'adm:settings'), 'admin tugmalari ko\'rinadi');
+check(AdminAccess::isAdmin(ADMIN) && !AdminAccess::isAdmin(USER_ID), 'admin ID .env dan olinadi');
+
+$testOrder = Order::create([
+    'user_id' => $adminUserId, 'status' => 'new', 'payment_method' => 'cash',
+    'items_total' => 1000, 'delivery_fee' => 0, 'total' => 1000,
+    'address_text' => null, 'latitude' => 41.3, 'longitude' => 69.2,
+    'phone' => '+998900000001', 'comment' => null,
+]);
+$tg->reset();
+press('adm:orders', false, ADMIN);
+check(str_contains($tg->lastText(), 'Ochiq buyurtmalar'), 'ochiq buyurtmalar ro\'yxati');
+press('aord:' . $testOrder, false, ADMIN);
+check(str_contains(json_encode($tg->calls), "ast:{$testOrder}:accepted"), 'kartochkada «accepted» tugmasi bor');
+check(!str_contains(json_encode($tg->calls), "ast:{$testOrder}:delivered"), 'kartochkada noto\'g\'ri o\'tish tugmasi yo\'q');
+press('ast:' . $testOrder . ':accepted', false, ADMIN);
+check(Order::find($testOrder)['status'] === 'accepted', 'admin buyurtmani qabul qildi');
+$tg->reset();
+press('ast:' . $testOrder . ':delivered', false, ADMIN);
+check(alertShown($tg) && Order::find($testOrder)['status'] === 'accepted', 'accepted → delivered admin uchun ham rad etildi');
+
+// Sozlamalar
+$tg->reset();
+press('adm:settings', false, ADMIN);
+check(str_contains(json_encode($tg->calls), 'aset:delivery_radius_km'), 'sozlamalar ro\'yxati');
+press('aset:delivery_fee', false, ADMIN);
+check(stateOf(ADMIN) === 'admin_setting', 'sozlama qiymati so\'raldi');
+send(['text' => 'abc'], ADMIN);
+check(Setting::get('delivery_fee') === '10000', 'matn qiymat qabul qilinmadi');
+send(['text' => '12000'], ADMIN);
+check(Setting::get('delivery_fee') === '12000' && stateOf(ADMIN) === 'main', 'yetkazish narxi o\'zgardi');
+Setting::set('delivery_fee', '10000');
+
+press('aset:delivery_radius_km', false, ADMIN);
+send(['text' => '7'], ADMIN);
+check(Setting::get('delivery_radius_km') === '5', 'radius 7 km rad etildi (3–5 oralig\'ida)');
+send(['text' => '4'], ADMIN);
+check(Setting::get('delivery_radius_km') === '4', 'radius 4 km saqlandi');
+Setting::set('delivery_radius_km', '5');
+
+press('aset:restaurant_phone', false, ADMIN);
+send(['text' => '+998 90 111 22 33'], ADMIN);
+check(Setting::get('restaurant_phone') === '+998 90 111 22 33', 'telefon saqlandi');
+press('aset:card_number', false, ADMIN);
+send(['text' => 'abcd'], ADMIN);
+check(Setting::get('card_number') === '8600 0000 0000 0000', 'noto\'g\'ri karta raqami rad etildi');
+
+$tg->reset();
+press('aset:delivery_fee', false, USER_ID);
+check(alertShown($tg), 'oddiy foydalanuvchi sozlamani o\'zgartira olmaydi');
+
+// Mahsulotlar
+$tg->reset();
+press('adm:products', false, ADMIN);
+check(str_contains(json_encode($tg->calls), 'aprod:1'), 'mahsulotlar ro\'yxati');
+press('aptog:1', false, ADMIN);
+check((int) Product::find(1)['is_active'] === 0, 'mahsulot nofaol qilindi');
+check(Product::findActive(1) === null, 'nofaol mahsulot menyuda ko\'rinmaydi');
+press('aptog:1', false, ADMIN);
+check(Product::findActive(1) !== null, 'mahsulot qayta faollashtirildi');
+press('aprice:1', false, ADMIN);
+send(['text' => '0'], ADMIN);
+check((int) Product::find(1)['price'] === 28000, 'nol narx rad etildi');
+send(['text' => '31000'], ADMIN);
+check((int) Product::find(1)['price'] === 31000, 'narx o\'zgardi');
+Product::setPrice(1, 28000);
+
+// Admin almashtirish (tasdiqlash bilan)
+press('aadm', false, ADMIN);
+send(['text' => '90021'], ADMIN);
+check(stateOf(ADMIN) === 'admin_change_confirm', 'yangi ID tasdiqlash bosqichiga o\'tdi');
+press('aadmok', false, ADMIN);
+check(Setting::get('admin_tg_id') === '90021', 'admin settings jadvalida almashtirildi');
+check(!AdminAccess::isAdmin(ADMIN) && AdminAccess::isAdmin(90021), 'eski admin huquqi yo\'qoldi, yangisi oldi');
+$tg->reset();
+press('adm:orders', false, ADMIN);
+check(alertShown($tg), 'eski admin endi panelga kira olmaydi');
+Setting::set('admin_tg_id', '');
+check(AdminAccess::isAdmin(ADMIN), 'settings bo\'sh bo\'lsa .env dagi admin ishlaydi');
+
+section('11. Yordam va mijoz bilan bog\'lanish');
+$tg->reset();
+text(I18n::t('ru', 'btn.help'));
+check(stateOf(USER_ID) === 'help_message', 'yordam: xabar so\'raldi');
+$tg->reset();
+text('Buyurtmam <b>kechikdi</b>');
+$toAdmin = sentTo($tg, ADMIN);
+check(count($toAdmin) === 1 && str_contains($toAdmin[0]['text'], '&lt;b&gt;kechikdi'), 'yordam xabari admin shaxsiy akkauntiga yuborildi (HTML tozalangan)');
+check(str_contains(json_encode($toAdmin[0]['reply_markup'] ?? []), 'rp:' . USER_ID), 'admin xabarida «Javob» tugmasi bor');
+check(stateOf(USER_ID) === 'main', 'yordamdan keyin menyuga qaytdi');
+
+press('rp:' . USER_ID, false, ADMIN);
+check(stateOf(ADMIN) === 'admin_reply', 'admin javob rejimiga o\'tdi');
+$tg->reset();
+send(['text' => 'Salom, tez yetkazamiz'], ADMIN);
+$toCustomer = sentTo($tg, USER_ID);
+check(count($toCustomer) === 1 && str_contains($toCustomer[0]['text'], 'Salom, tez yetkazamiz') && str_contains($toCustomer[0]['text'], 'Lion Lavash'), 'javob mijozga yetkazildi');
+
+$tg->reset();
+press('rp:' . USER_ID, false, USER_ID);
+check(alertShown($tg), 'oddiy foydalanuvchi javob tugmasini ishlata olmaydi');
+
+Setting::set('admin_username', '@lion_admin');
+$tg->reset();
+text(I18n::t('ru', 'btn.contact'));
+check(str_contains($tg->lastText(), 'lion_admin'), 'aloqa: admin username ko\'rsatildi');
+Setting::set('admin_username', '');
 
 // ---------------------------------------------------------------- natija
 echo "\nNatija: {$passed} o'tdi, {$failed} xato\n";
